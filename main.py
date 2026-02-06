@@ -1,53 +1,66 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI
 from pydantic import BaseModel
 from typing import List
 
 app = FastAPI()
 
-# Simple in-memory database
-students_db = {}
+students=[]
 
-class student(BaseModel):
+class Student(BaseModel):
     name: str
     email: str
-    roll_number: int 
-    department: str
+    age: int
+    Roll_number:str
+    Department:str
 
-class studentsResponse(BaseModel):
-    id: int
-    name: str
-    email: str
-    roll_number: int 
-    department: str
 
 @app.get("/")
 def read_root():
     return {"Hello": "World"}
 
-@app.post("/students", response_model=studentsResponse)
-def create_student(new_student: student):
-    # Generate a simple ID
-    student_id = len(students_db) + 1
-    students_db[student_id] = new_student.dict()
-    return studentsResponse(id=student_id, **new_student.dict())
+class StudentResponse(Student):
+    id: int
+   
 
-@app.get("/students/{student_id}", response_model=studentsResponse)
-def read_student(student_id: int):
-    if student_id not in students_db:
-        raise HTTPException(status_code=404, detail="Student not found")
-    student_data = students_db[student_id]
-    return studentsResponse(id=student_id, **student_data)
+@app.get("/")
+def read_root():
+    return {"Hello": "World"}
 
-@app.put("/students/{student_id}", response_model=studentsResponse)
-def update_student(student_id: int, updated_student: student):
-    if student_id not in students_db:
-        raise HTTPException(status_code=404, detail="Student not found")
-    students_db[student_id] = updated_student.dict()
-    return studentsResponse(id=student_id, **updated_student.dict())
+def create_student(student:Student)->StudentResponse:
+    students.append(student)
+    return student
 
-@app.delete("/students/{student_id}", response_model=studentsResponse)
-def delete_student(student_id: int):
-    if student_id not in students_db:
-        raise HTTPException(status_code=404, detail="Student not found")
-    student_data = students_db.pop(student_id)
-    return studentsResponse(id=student_id, **student_data)
+def get_student_by_roll(roll):
+    for student in students:
+        if student.Roll_number == roll:
+            return student
+
+def read_student(roll:str)->StudentResponse:
+    return get_student_by_roll(roll)
+ 
+
+def update_student(roll:str,student:Student)->StudentResponse:
+    return StudentResponse(roll=roll, **student.dict())
+
+def delete_student(roll:str):
+    return StudentResponse(roll=roll, **student.dict())
+
+@app.get("/students")
+def read_students():
+    return students
+
+@app.post("/students")
+def create_student_api(student:Student):
+    return create_student(student)
+
+@app.get("/students/{roll}")
+def read_student_api(roll:str):
+    return read_student(roll)
+
+@app.put("/students/{roll}")
+def update_student_api(roll:str,student:Student):
+    return update_student(roll,student)
+
+@app.delete("/students/{roll}")
+def delete_student_api(roll:str):
+    return delete_student(roll)
